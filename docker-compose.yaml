@@ -1,0 +1,44 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: restaurant_db
+      POSTGRES_USER: strapi
+      POSTGRES_PASSWORD: strongpassword123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - strapi-network
+  
+  strapi:
+    build: ./server
+    ports:
+      - '1337:1337'
+    environment:
+      - DATABASE_HOST=postgres
+      - DATABASE_NAME=restaurant_db
+      - DATABASE_USER=strapi
+      - DATABASE_PASSWORD=strongpassword123
+      - JWT_SECRET=your_jwt_secret_here
+    depends_on:
+      - postgres
+    networks:
+      - strapi-network
+
+  nextjs:
+    build: ./client
+    ports:
+      - '3000:3000'
+    environment:
+      - NEXT_PUBLIC_STRAPI_URL=http://strapi:1337
+    depends_on:
+      - strapi
+    networks:
+      - strapi-network
+
+volumes:
+  postgres_data:
+
+networks:
+  strapi-network:

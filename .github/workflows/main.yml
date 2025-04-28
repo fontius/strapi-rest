@@ -1,0 +1,53 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  DOCKER_REGISTRY: docker.io
+  CLIENT_IMAGE: ${{ vars.DOCKERHUB_USERNAME }}/restaurant-client
+  SERVER_IMAGE: ${{ vars.DOCKERHUB_USERNAME }}/restaurant-server
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Build Client
+        working-directory: ./client
+        run: npm ci && npm run build
+
+      - name: Build Server
+        working-directory: ./server
+        run: npm ci && npm run build
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and Push Client Image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./client
+          tags: ${{ env.CLIENT_IMAGE }}:latest,${{ env.CLIENT_IMAGE }}:${{ github.sha }}
+          push: ${{ github.event_name != 'pull_request' }}
+
+      - name: Build and Push Server Image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./server
+          tags: ${{ env.SERVER_IMAGE }}:latest,${{ env.SERVER_IMAGE }}:${{ github.sha }}
+          push: ${{ github.event_name != 'pull_request' }}

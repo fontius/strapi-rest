@@ -1,0 +1,36 @@
+{
+  "version": 2,
+  "services": {
+    "restaurant-client": {
+      "image": "${DOCKERHUB_USERNAME}/restaurant-client:${COMMIT_SHA}",
+      "ports": ["3000:3000"],
+      "environment": {
+        "NEXT_PUBLIC_STRAPI_URL": "http://restaurant-server:1337"
+      },
+      "depends_on": ["restaurant-server"]
+    },
+    "restaurant-server": {
+      "image": "${DOCKERHUB_USERNAME}/restaurant-server:${COMMIT_SHA}",
+      "ports": ["1337:1337"],
+      "environment": {
+        "DATABASE_URL": "${POSTGRES_URL}",
+        "JWT_SECRET": "${JWT_SECRET}"
+      },
+      "healthcheck": {
+        "test": ["CMD", "curl", "-f", "http://localhost:1337/_health"],
+        "interval": "30s",
+        "timeout": "10s",
+        "retries": 3
+      }
+    },
+    "postgres": {
+      "image": "postgres:15",
+      "volumes": ["postgres_data:/var/lib/postgresql/data"],
+      "environment": {
+        "POSTGRES_DB": "restaurant_db",
+        "POSTGRES_USER": "strapi",
+        "POSTGRES_PASSWORD": "${POSTGRES_PASSWORD}"
+      }
+    }
+  }
+}
