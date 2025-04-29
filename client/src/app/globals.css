@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+/* ...existing styles... */
+
+@theme {
+    --deepblue-500: #023047;
+}
+
+.bg-deepblue {
+    background-color: var (--deepblue-500) #528bee;
+}
