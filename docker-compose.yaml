@@ -16,6 +16,7 @@ services:
     ports:
       - '1337:1337'
     environment:
+      - NODE_ENV=production
       - DATABASE_HOST=postgres
       - DATABASE_NAME=restaurant_db
       - DATABASE_USER=strapi
