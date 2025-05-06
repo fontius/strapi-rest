@@ -1,11 +1,23 @@
-@import "tailwindcss";
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
 
-/* ...existing styles... */
-
-@theme {
-    --deepblue-500: #023047;
+/* Add base styles here */
+body {
+  @apply bg-white text-gray-900;
+  font-family: system-ui, sans-serif;
+  margin: 0;
+  padding: 0;
 }
 
-.bg-deepblue {
-    background-color: var (--deepblue-500) #528bee;
+/* Example: style headings */
+h1, h2, h3, h4, h5, h6 {
+  @apply font-bold;
 }
+
+/* Example: links */
+a {
+  @apply text-blue-600 underline hover:text-blue-800;
+}
+
+/* Add any additional global styles below */

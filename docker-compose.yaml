@@ -1,54 +1,110 @@
+# docker-compose.yaml (Root of your project)
+
 
 services:
   postgres:
     image: postgres:15
+    container_name: restaurant_postgres_dev # Unique name; change if deploying multiple stacks
+    env_file:
+      - .env # For local dev; use .env.production for Coolify or production
+    # To use .env.production, change to:
+    # env_file:
+    #   - .env.production
+    # Fill all values in .env/.env.production with strong, unique secrets. See .env.production for guidance.
     environment:
-      POSTGRES_DB: restaurant_db
-      POSTGRES_USER: strapi
-      # Use a strong password here, and match it below and in Coolify. Sets the password for the Postgres database user (strapi)
-      POSTGRES_PASSWORD: strongpassword123
+      # Ensure these match your .env/.env.production file or set them explicitly here
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - strapi-network
+    # For Coolify: set labels or unique container_name if deploying multiple projects
 
   strapi:
-    build: ./server
+    container_name: restaurant_strapi_dev # Unique name; change if deploying multiple stacks
+    build:
+      context: ./server
+      # Optional: specify target Dockerfile if not default
+      # dockerfile: Dockerfile
+    env_file:
+      - .env # For local dev; use .env.production for Coolify or production
+    # To use .env.production, change to:
+    # env_file:
+    #   - .env.production
+    # Fill all values in .env/.env.production with strong, unique secrets. See .env.production for guidance.
+    # Environment overrides (optional, env_file takes precedence if var exists)
+    # environment:
+    #   NODE_ENV: development # Ensure development mode
     ports:
-      - '1337:1337'
-    environment:
-      - NODE_ENV=production
-      - DATABASE_HOST=postgres
-      - DATABASE_PORT=5432 # Good practice to be explicit
-      - DATABASE_NAME=restaurant_db
-      # --- FIX THIS LINE ---
-      - DATABASE_USERNAME=strapi
-      # --- END FIX ---
-      - DATABASE_PASSWORD=strongpassword123 # Must match postgres service above. Password for Strapi to connect to Postgres
-      # --- SECRETS - Use secure values --
-      - JWT_SECRET=generate_a_strong_random_secret_here_for_users
-      - ADMIN_JWT_SECRET=generate_a_different_strong_secret_for_admin
-      - APP_KEYS=generate_comma_separated_keys_1,generate_comma_separated_keys_2
-      - API_TOKEN_SALT=generate_another_strong_random_salt
-      - TRANSFER_TOKEN_SALT=generate_yet_another_strong_random_salt
+      - "1337:1337"
+    volumes:
+      # Mount local server code into the container's /app directory
+      # :delegated can improve performance on macOS/Windows Docker Desktop
+      - ./server:/app:delegated
+      # Use a volume for node_modules *inside* the container
+      # This prevents local node_modules from overwriting container ones
+      # and avoids potential OS compatibility issues with compiled modules
+      - /app/node_modules
+      # Also exclude build artifacts if they exist locally
+      - /app/build
+      - /app/dist
+      - /app/.strapi # Strapi internal cache/build
+    # Use the development command for Strapi (enables auto-reload)
+    command: npm run develop
     depends_on:
       - postgres
     networks:
       - strapi-network
+    restart: unless-stopped
+    # For Coolify: set labels or unique container_name if deploying multiple projects
 
   nextjs:
-    build: ./client
+    container_name: restaurant_nextjs_dev # Unique name; change if deploying multiple stacks
+    build:
+      context: ./client
+      # Optional: specify target Dockerfile if not default
+      # dockerfile: Dockerfile
+    env_file:
+      - .env # For local dev; use .env.production for Coolify or production
+    # To use .env.production, change to:
+    # env_file:
+    #   - .env.production
+    # Fill all values in .env/.env.production with strong, unique secrets. See .env.production for guidance.
+    # Environment overrides (optional, env_file takes precedence)
+    # environment:
+    #   NEXT_PUBLIC_STRAPI_URL: http://strapi:1337 # Ensure correct API URL
     ports:
-      - '3000:3000'
-    environment:
-      - NEXT_PUBLIC_STRAPI_URL=http://strapi:1337
+      - "3000:3000"
+    volumes:
+      # Mount local client code into the container's /app directory
+      - ./client:/app:delegated
+      # Use a volume for node_modules inside the container
+      # - /app/node_modules
+      # Exclude Next.js build cache
+      - /app/.next
+    # Use the development command for Next.js (enables HMR)
+    command: npm run dev
     depends_on:
       - strapi
     networks:
       - strapi-network
+    restart: unless-stopped
+    # For Coolify: set labels or unique container_name if deploying multiple projects
 
 volumes:
+  # Persists Postgres data even if the container is removed
   postgres_data:
 
 networks:
+  # Allows services to communicate using their service names (e.g., http://strapi:1337)
   strapi-network:
+
+# ---
+# Coolify deployment notes:
+# - Use .env.production for production/Coolify deployments (copy/adjust from .env)
+# - Ensure container_name and service names are unique per project/app
+# - You may add labels for Coolify project identification if needed
+# - Service names (postgres, strapi, nextjs) are used for internal networking (e.g., http://strapi:1337)
+# ---
