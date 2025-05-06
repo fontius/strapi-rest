@@ -10,8 +10,8 @@ async function getHomePageData() {
     return {
       id: data?.id,
       documentId: data?.documentId,
-      title: data?.title || "Island Breeze Beach Bar & Grill",
-      description: data?.description || "Fresh seafood & tropical cocktails by the ocean",
+      title: data?.title || "Beach Bar & Grill",
+      description: data?.description || "& tropical cocktails by the ocean",
       createdAt: data?.createdAt,
       updatedAt: data?.updatedAt,
       publishedAt: data?.publishedAt,
@@ -40,7 +40,7 @@ export default async function Home() {
           <h1 className="text-5xl font-bold mb-6 text-center font-lobster">
             {title}
           </h1>
-          <p className="text-lg text-amber-300 leading-relaxed text-center mb-8">
+          <p className="text-lg text-amber-200 leading-relaxed text-center mb-8">
             {description}
           </p>
        
