@@ -1,51 +1,49 @@
-async function getHomePageData() {
-  const BASE_URL = process.env.NEXT_PUBLIC_STRAPI_URL || "http://localhost:1337";
-  try {
-    const res = await fetch(`${BASE_URL}/api/home-page`, {
-      next: { revalidate: 60 }
-    });
+async function loader () {
+  const path = "/api/home-page";
+  // For server-side fetches, use the internal URL.
+  // process.env.STRAPI_INTERNAL_URL will be available on the server.
+  const BASE_URL = process.env.STRAPI_INTERNAL_URL || "http://localhost:1337"; // Fallback for safety
+  const url = new URL (path, BASE_URL);
 
-    if (!res.ok) throw new Error('Failed to fetch home page');
-    const { data } = await res.json();
-    return {
-      id: data?.id,
-      documentId: data?.documentId,
-      title: data?.title || "Beach Bar & Grill",
-      description: data?.description || "& tropical cocktails by the ocean",
-      createdAt: data?.createdAt,
-      updatedAt: data?.updatedAt,
-      publishedAt: data?.publishedAt,
-    };
+  console.log(`Fetching from: ${url.href}`); // Good for debugging
+
+  try {
+    const response = await fetch(url.href);
+
+    if (!response.ok) {
+      // Log more details if the response is not OK
+      const errorText = await response.text();
+      console.error(`Fetch failed with status: ${response.status}`, errorText);
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log(data);
+
+    // Make sure data.data exists before spreading
+    return data && data.data ? { ...data.data } : {};
   } catch (error) {
-    console.error('Using fallback content:', error);
-    return {
-      id: null,
-      documentId: null,
-      title: "Island Breeze Beach Bar & Grill",
-      description: "Fresh seafood & tropical cocktails by the ocean",
-      createdAt: null,
-      updatedAt: null,
-      publishedAt: null,
-    };
+    console.error("Error in loader function:", error);
+    // Re-throw or handle appropriately for Next.js error page
+    throw error;
   }
 }
 
-export default async function Home() {
-  const { title, description } = await getHomePageData();
+export default async function HomeRoute () {
+  let data = { title: "Error loading title", description: "Error loading description" }; // Default error state
+  try {
+    data = await loader();
+  } catch (error) {
+    console.error("Failed to load data for HomeRoute:", error);
+    // Optionally, you could render a specific error component here
+  }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-tropical-sand to-tropical-teal/10">
-      <section className="max-w-4xl mx-auto px-4 py-16">
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-8 shadow-xl">
-          <h1 className="text-5xl font-bold mb-6 text-center font-lobster">
-            {title}
-          </h1>
-          <p className="text-lg text-amber-200 leading-relaxed text-center mb-8">
-            {description}
-          </p>
-       
-        </div>
-      </section>
-    </main>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
+        <h1 className="text-3xl font-bold mb-4 text-gray-800">{data.title}</h1>
+        <p className="text-lg text-gray-600">{data.description}</p>
+      </div>
+    </div>
   );
 }
