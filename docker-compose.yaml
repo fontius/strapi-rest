@@ -1,18 +1,10 @@
-# docker-compose.yaml (Root of your project)
-
-
 services:
   postgres:
     image: postgres:15
-    container_name: restaurant_postgres_dev # Unique name; change if deploying multiple stacks
+    container_name: restaurant_postgres_dev
     env_file:
-      - .env # For local dev; use .env.production for Coolify or production
-    # To use .env.production, change to:
-    # env_file:
-    #   - .env.production
-    # Fill all values in .env/.env.production with strong, unique secrets. See .env.production for guidance.
+      - .env
     environment:
-      # Ensure these match your .env/.env.production file or set them explicitly here
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -20,91 +12,51 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - strapi-network
-    # For Coolify: set labels or unique container_name if deploying multiple projects
 
   strapi:
-    container_name: restaurant_strapi_dev # Unique name; change if deploying multiple stacks
+    container_name: restaurant_strapi_dev
     build:
       context: ./server
-      # Optional: specify target Dockerfile if not default
-      # dockerfile: Dockerfile
     env_file:
-      - .env # For local dev; use .env.production for Coolify or production
-    # To use .env.production, change to:
-    # env_file:
-    #   - .env.production
-    # Fill all values in .env/.env.production with strong, unique secrets. See .env.production for guidance.
-    # Environment overrides (optional, env_file takes precedence if var exists)
-    # environment:
-    #   NODE_ENV: development # Ensure development mode
+      - .env
     ports:
       - "1337:1337"
     volumes:
-      # Mount local server code into the container's /app directory
-      # :delegated can improve performance on macOS/Windows Docker Desktop
       - ./server:/app:delegated
-      # Use a volume for node_modules *inside* the container
-      # This prevents local node_modules from overwriting container ones
-      # and avoids potential OS compatibility issues with compiled modules
       - /app/node_modules
-      # Also exclude build artifacts if they exist locally
       - /app/build
       - /app/dist
-      - /app/.strapi # Strapi internal cache/build
-    # Use the development command for Strapi (enables auto-reload)
+      - /app/.strapi
     command: npm run develop
     depends_on:
       - postgres
     networks:
       - strapi-network
     restart: unless-stopped
-    # For Coolify: set labels or unique container_name if deploying multiple projects
 
   nextjs:
-    container_name: restaurant_nextjs_dev # Unique name; change if deploying multiple stacks
+    container_name: restaurant_nextjs_dev
     build:
       context: ./client
-      # Optional: specify target Dockerfile if not default
-      # dockerfile: Dockerfile
+      dockerfile: Dockerfile
+      target: development
     env_file:
-      - .env # For local dev; use .env.production for Coolify or production
-    # To use .env.production, change to:
-    # env_file:
-    #   - .env.production
-    # Fill all values in .env/.env.production with strong, unique secrets. See .env.production for guidance.
-    # Environment overrides (optional, env_file takes precedence)
-    # environment:
-    #   NEXT_PUBLIC_STRAPI_URL: http://strapi:1337 # Ensure correct API URL
+      - .env
     ports:
       - "3000:3000"
     volumes:
-      # Mount local client code into the container's /app directory
       - ./client:/app:delegated
-      # Use a volume for node_modules inside the container
-      # - /app/node_modules
-      # Exclude Next.js build cache
-      - /app/.next
-    # Use the development command for Next.js (enables HMR)
+      - nextjs_node_modules:/app/node_modules
     command: npm run dev
     depends_on:
       - strapi
     networks:
       - strapi-network
     restart: unless-stopped
-    # For Coolify: set labels or unique container_name if deploying multiple projects
 
 volumes:
-  # Persists Postgres data even if the container is removed
   postgres_data:
+  nextjs_node_modules:
 
 networks:
-  # Allows services to communicate using their service names (e.g., http://strapi:1337)
   strapi-network:
-
-# ---
-# Coolify deployment notes:
-# - Use .env.production for production/Coolify deployments (copy/adjust from .env)
-# - Ensure container_name and service names are unique per project/app
-# - You may add labels for Coolify project identification if needed
-# - Service names (postgres, strapi, nextjs) are used for internal networking (e.g., http://strapi:1337)
-# ---
